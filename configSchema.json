@@ -1,0 +1,114 @@
+{
+	"type": "object",
+	"properties": {
+		"version" : { "type": "number" },
+		"tests": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"name": { "type": "string" },
+					"friendlyName": { "type": "string" },
+					"url": {
+						"type": "string",
+						"format": "url"
+					},
+					"pollingInterval": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"successCondition": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"anyOf": [
+								{ "$ref": "#/definitions/responseCode" },
+								{ "$ref": "#/definitions/responseSize" },
+								{ "$ref": "#/definitions/contentMatch" }
+							]
+						}
+					}
+				},
+				"additionalProperties": false,
+				"required": ["name", "friendlyName", "url", "successCondition"]
+			}
+		}
+	},
+	"required": ["version", "tests"],
+	"definitions": {
+		"exactResponseCode": {
+			"properties": {
+				"exact": {
+					"type": "integer",
+					"minimum": 100,
+					"maximum": 599
+				}
+			}
+		},
+		"seriesResponseCode": {
+			"properties": {
+				"series": {
+					"type": "integer",
+					"minimum": 100,
+					"maximum": 500,
+					"multipleOf": 100
+				}
+			}
+		},
+		"responseCodeType" : {
+			"oneOf": [
+				{ "$ref": "#/definitions/exactResponseCode" },
+				{ "$ref": "#/definitions/seriesResponseCode" }
+			],
+			"additionalProperties": false
+		},
+		"notResponseCode" : {
+			"properties": {
+				"type": { "enum": ["responseCode"] }
+			},
+			"oneOf": [
+				{ "$ref": "#/definitions/exactResponseCode" },
+				{ "$ref": "#/definitions/seriesResponseCode" }
+			],
+			"additionalProperties": false
+		},
+		"responseCode" : {
+			"properties": {
+				"type": { "enum": ["responseCode"]}
+			},
+			"anyOf": [
+				{ "$ref": "#/definitions/exactResponseCode" },
+				{ "$ref": "#/definitions/seriesResponseCode" },
+				{ "$ref": "#/definitions/notResponseCode" }
+			],
+			"required": ["type"]
+		},
+		"responseSize": {
+			"properties": {
+				"type": { "enum": ["responseSize"] },
+				"minimum": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"maximum": {
+					"type": "integer",
+					"minimum": 0
+				}
+			}
+		},
+		"contentMatch": {
+			"properties": {
+				"type": { "enum": ["contentMatch"] },
+				"matches": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minItems": 1,
+						"uniqueItems": true
+					}
+				}
+			},
+			"required": ["matches"]
+		}
+	}
+}

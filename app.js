@@ -3,8 +3,114 @@ var https = require("https");
 var colors = require("colors");
 var dateFormat = require("dateformat");
 var fs = require("fs");
+var Validator = require('jsonschema').Validator;
+var v = new Validator();
+var configSchema = require("./configSchema.json");
+var configFilename = "config.json";
+var config;
 
-var pollingInterval = 60000;
+function LoadConfiguration(configFilename) {
+	console.log("Loading configuration file " + configFilename);
+
+	// Load the configuration file
+	if (!fs.existsSync(configFilename))
+	{
+		// Configuration file does not exist
+		console.log("FATAL".red + ": Configuration file config.js does not exist, exiting.");
+		process.exit(1);
+	}
+	else {
+		// Read the config file and parse as JSON
+		try {
+			var configData = fs.readFileSync(configFilename, "utf-8");
+		}
+		catch (err) {
+			console.log("FATAL".red + `: Error reading configuration file config.js:\n${err}`);
+			process.exit(1);
+		}
+
+		// Test file length
+		if (configData.length === 0)
+		{
+			console.log("FATAL".red + ": No configuration data found in file config.js, exiting.");
+			process.exit(1);
+		}
+		else {
+			// Parse the configuration data
+			try {
+				config = JSON.parse(configData);
+			}
+			catch (err) {
+				console.log("FATAL".red + `: Error parsing configuration data:\n${err}`);
+				process.exit(1);
+			}
+		}
+	}
+}
+
+function ValidateConfiguration(config) {
+	console.log("Validating " + JSON.stringify(config).length + " bytes of configuration data from " + configFilename);
+
+	// Configuration must contain a version as a top-level key, otherwise we don't know what to validate against
+	if (!config.hasOwnProperty("version"))
+	{
+		console.log("FATAL".red + ": Configuration file missing 'version' key, cannot validate. Exiting.");
+		process.exit(1);
+	}
+	else
+	{
+		switch (config.version) {
+			case 1:
+				console.log("Validating configuration file version 1");
+
+				// Validate the configuration data against the schema
+				var result = v.validate(config, configSchema);
+
+				if (result.valid)
+				{
+					console.log("Configuration data is valid");
+				}
+				else
+				{
+					console.log("FATAL".red + ": Configuration data is invalid, exiting.");
+					process.exit(1);
+				}
+				break;
+			default:
+				console.log("FATAL".red + `: Unknown configuration version number ${config.version} found in config file.`);
+				break;
+		}
+	}
+}
+
+function ParseCommandLine(argv) {
+	console.log("Parsing " + (argv.length - 2) / 2 + " command line switches");
+
+	for(i = 2;i<argv.length;i++)
+	{
+		switch(argv[i].toLowerCase()) {
+			case "--config":
+				console.log("Overriding default configuration filename with passed value " + argv[i+1].toLowerCase());
+				configFilename = argv[i+1].toLowerCase();
+				break;
+			default:
+				console.log("Unknown command-line parameter passed: " + argv[i].toLowerCase());
+				break;
+		}
+
+		i++;
+	}
+}
+
+// Parse command-line arguments
+ParseCommandLine(process.argv);
+
+// Load the configuration
+LoadConfiguration(configFilename);
+ValidateConfiguration(config);
+
+// Stop here while we work out config parsing
+process.exit(0);
 
 // Schedule tests
 setInterval(homepageTest, pollingInterval);
@@ -25,6 +131,7 @@ CCFADBCommitteeSearch();
 CCFADBKeywordSearch();
 
 // Test functions
+/*
 function homepageTest() {
 	performTest("City Homepage", "http://www.cambridgema.gov/", 200, 22000, 30000);
 }
@@ -52,7 +159,7 @@ function CCFADBCommitteeSearch() {
 function CCFADBKeywordSearch() {
 	performTest("CCFADB Search - Keyword (Foundry)", "http://www2.cambridgema.gov/cityClerk/SearchResults.cfm?searchType=keyword&newSearch=1&keyword=foundry&search_mode=phrase&date_lo=&date_hi=&type=cm_agenda&search3=Search", 200, 25000, 35000, "Foundry");
 }
-
+*/
 /*
 var options = {
 	hostname: "www.cambridgema.gov",

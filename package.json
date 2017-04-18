@@ -1,15 +1,16 @@
 {
-  "name": "website-tester",
-  "version": "1.0.0",
-  "description": "",
-  "main": "websiteTester.js",
+  "name": "Supreme-Pancake",
+  "version": "0.1",
+  "description": "NodeJS-based modular website monitoring application",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Justin Handfield",
+  "license": "MIT",
   "dependencies": {
     "colors": "^1.1.2",
-    "dateformat": "^2.0.0"
+    "dateformat": "^2.0.0",
+    "jsonschema": "^1.1.1"
   }
 }
