@@ -1,0 +1,112 @@
+{
+	"version": 1,
+	"tests" : [{
+		"name": "homepageTest",
+		"friendlyName": "City Homepage Test",
+		"url": "https://www.cambridgema.gov/",
+		"pollingInterval" : 60000,
+		"successCondition" : [
+			{
+				"type": "responseCode",
+				"exact": 200
+			},
+			{
+				"type": "responseSize",
+				"minimum": 22000,
+				"maximum": 30000
+			}
+		]
+	},
+	{
+		"name": "elineTest",
+		"friendlyName" : "E-Line Homepage",
+		"url" : "https://secure.cambridgema.gov/eline",
+		"pollingInterval" : 60000,
+		"successCondition" : [
+			{
+					"type": "responseCode",
+					"exact": 200
+			}
+		]
+	},
+	{
+		"name": "calendarTest",
+		"friendlyName": "City Calendar",
+		"url": "https://www.cambridgema.gov/citycalendar",
+		"pollingInterval" : 60000,
+		"successCondition" : [
+			{
+				"type": "responseCode",
+				"exact": 200
+			}
+		]
+	},
+	{
+		"name": "CCFADBSearchForm",
+		"friendlyName" : "CCFADB Search Form",
+		"url" : "http://www2.cambridgema.gov/cityClerk/SearchResults.cfm?searchType=councillor&newSearch=1&councillor_id=61&search1=Search",
+		"pollingInterval" : 60000,
+		"successCondition" : [
+			{
+				"type": "responseCode",
+				"exact": 200
+			}
+		]
+	},
+	{
+		"name": "CCFADBCouncilorSearch",
+		"friendlyName" : "CCFADB Search - Councilor",
+		"url" : "http://www2.cambridgema.gov/cityClerk/SearchResults.cfm?searchType=councillor&newSearch=1&councillor_id=61&search1=Search",
+		"pollingInterval" : 60000,
+		"successCondition" : [
+			{
+				"type": "responseCode",
+				"exact": 200
+			},
+			{
+				"type": "responseSize",
+				"minimum": 75000,
+				"maximum": 85000
+			}
+		]
+	},
+	{
+		"name": "CCFADBCommitteeSearch",
+		"friendlyName" : "CCFADB Search - Committee",
+		"url" : "http://www2.cambridgema.gov/cityClerk/SearchResults.cfm?searchType=committee&newSearch=1&committee_id=94%2C77%2C60%2C11%2C27%2C44&search1=Search",
+		"pollingInterval" : 60000,
+		"successCondition" : [
+			{
+				"type": "responseCode",
+				"exact": 200
+			},
+			{
+				"type": "responseSize",
+				"minimum": 60000,
+				"maximum": 70000
+			}
+		]
+	},
+	{
+		"name": "CCFADBKeywordSearch",
+		"friendlyName" : "CCFADB Search - Keyword",
+		"url" : "http://www2.cambridgema.gov/cityClerk/SearchResults.cfm?searchType=keyword&newSearch=1&keyword=foundry&search_mode=phrase&date_lo=&date_hi=&type=cm_agenda&search3=Search",
+		"pollingInterval" : 60000,
+		"successCondition" : [
+			{
+				"type": "responseCode",
+				"exact": 200
+			},
+			{
+				"type": "responseSize",
+				"minimum": 25000,
+				"maximum": 35000
+			},
+			{
+				"type": "contentMatch",
+				"matches": [
+				]
+			}
+		]
+	}]
+}
