@@ -1,10 +1,12 @@
 {
 	"version": 1,
+	"warnResponseTime": 600,
+	"slowResponseTime": 1000,
 	"tests" : [{
 		"name": "homepageTest",
 		"friendlyName": "City Homepage Test",
 		"url": "https://www.cambridgema.gov/",
-		"pollingInterval" : 60000,
+		"pollingInterval" : 10000,
 		"successCondition" : [
 			{
 				"type": "responseCode",

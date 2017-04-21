@@ -3,13 +3,16 @@ var https = require("https");
 var colors = require("colors");
 var dateFormat = require("dateformat");
 var fs = require("fs");
+var now = require("performance-now");
 var Validator = require('jsonschema').Validator;
 var v = new Validator();
 var configSchema = require("./configSchema.json");
 var configFilename = "config.json";
-var config;
+var configData;
+var configuration;
+var tests = [];
 
-function LoadConfiguration(configFilename) {
+function LoadConfigurationData(configFilename) {
 	console.log("Loading configuration file " + configFilename);
 
 	// Load the configuration file
@@ -38,7 +41,7 @@ function LoadConfiguration(configFilename) {
 		else {
 			// Parse the configuration data
 			try {
-				config = JSON.parse(configData);
+				return JSON.parse(configData);
 			}
 			catch (err) {
 				console.log("FATAL".red + `: Error parsing configuration data:\n${err}`);
@@ -48,7 +51,7 @@ function LoadConfiguration(configFilename) {
 	}
 }
 
-function ValidateConfiguration(config) {
+function ValidateConfigurationData(config) {
 	console.log("Validating " + JSON.stringify(config).length + " bytes of configuration data from " + configFilename);
 
 	// Configuration must contain a version as a top-level key, otherwise we don't know what to validate against
@@ -67,9 +70,7 @@ function ValidateConfiguration(config) {
 				var result = v.validate(config, configSchema);
 
 				if (result.valid)
-				{
-					console.log("Configuration data is valid");
-				}
+					return true;
 				else
 				{
 					console.log("FATAL".red + ": Configuration data is invalid, exiting.");
@@ -102,197 +103,97 @@ function ParseCommandLine(argv) {
 	}
 }
 
+function WebResponse() {
+	this.responseCode = 0;
+	this.responseData = "";
+	this.responseTime = 0;
+}
+
+function Test(testFromConfig) {
+	this.name = testFromConfig.name;
+	this.friendlyName = testFromConfig.friendlyName;
+	this.url = testFromConfig.url;
+	this.pollingInterval = testFromConfig.pollingInterval;
+	this.successCondition = testFromConfig.successCondition;
+	this.ExecuteTest = () => {
+		console.log(`Executing test ${this.friendlyName} with url ${this.url}`);
+
+		RequestUrl(this, ProcessTestResponse);
+	};
+}
+
+function SetConfiguration(config, callback) {
+	// Store the configuration in a global var for use elsewhere
+	configuration = config;
+
+	// Loop over the array of tests, adding them to the tests array
+	config.tests.forEach((value) => {
+		console.log("Setting up test " + value.friendlyName);
+
+		tests.push(new Test(value));
+	});
+
+	// Execute the callback function
+	if (callback !== undefined)
+		callback();
+}
+
+function RequestUrl(test, callback) {
+	var proto = http;
+	var response = new WebResponse();
+	var data;
+
+	var t0 = now();
+
+	console.log(`Requesting ${test.url} for test ${test.name}...`);
+
+	// Switch proto to https if appropriate
+	if (test.url.startsWith("https://")) proto = https;
+
+	proto.get(test.url, (res) => {
+		// Store the response code
+		response.responseCode = res;
+
+		// Retrieve data
+		res.setEncoding("utf-8");
+		res.on("data", (chunk) => { data += chunk });
+		res.on("end", () => {
+			response.responseData = data;
+			response.responseTime = now() - t0;
+
+			// Execute the callback
+			callback(test, response);
+		});
+	});
+}
+
 // Parse command-line arguments
 ParseCommandLine(process.argv);
 
 // Load the configuration
-LoadConfiguration(configFilename);
-ValidateConfiguration(config);
+configData = LoadConfigurationData(configFilename);
 
-// Stop here while we work out config parsing
-process.exit(0);
+// Validate the configuration data
+if (ValidateConfigurationData(configData))
+	// Load the configuration
+	config = SetConfiguration(configData, () => {
+			console.log(`There are ${tests.length} tests.`);
 
-// Schedule tests
-setInterval(homepageTest, pollingInterval);
-setInterval(elineTest, pollingInterval);
-setInterval(calendarTest, pollingInterval);
-setInterval(CCFADBSearchForm, pollingInterval);
-setInterval(CCFADBCouncilorSearch, pollingInterval);
-setInterval(CCFADBCommitteeSearch, pollingInterval);
-setInterval(CCFADBKeywordSearch, pollingInterval);
+			// Loop over each test, scheduling it to run on its polling interval
+			for(i = 0;i<tests.length;i++) {
+				var test = tests[i];
 
-// Run each test once immediately
-homepageTest();
-elineTest();
-calendarTest();
-CCFADBSearchForm();
-CCFADBCouncilorSearch();
-CCFADBCommitteeSearch();
-CCFADBKeywordSearch();
+				// Schedule each test to run on its pollingInterval
+				setInterval(test.ExecuteTest.bind(test), test.pollingInterval);
+				//setInterval(() => { ExecuteTest(tests[i]) }, tests[i].pollingInterval);
 
-// Test functions
-/*
-function homepageTest() {
-	performTest("City Homepage", "http://www.cambridgema.gov/", 200, 22000, 30000);
-}
-
-function elineTest() {
-	performTest("E-Line Homepage", "http://secure.cambridgema.gov/eline", 200, 0, 0);
-}
-
-function calendarTest() {
-	performTest("City Calendar", "http://www.cambridgema.gov/citycalendar", 200, 0, 0);
-}
-
-function CCFADBSearchForm() {
-	performTest("CCFADB Search Form", "http://www2.cambridgema.gov/cityclerk/search.cfm", 200, 0, 0);
-}
-
-function CCFADBCouncilorSearch() {
-	performTest("CCFADB Search - Councilor", "http://www2.cambridgema.gov/cityClerk/SearchResults.cfm?searchType=councillor&newSearch=1&councillor_id=61&search1=Search", 200, 75000, 85000, "Councillor Carlone");
-}
-
-function CCFADBCommitteeSearch() {
-	performTest("CCFADB Search - Committee", "http://www2.cambridgema.gov/cityClerk/SearchResults.cfm?searchType=committee&newSearch=1&committee_id=94%2C77%2C60%2C11%2C27%2C44&search1=Search", 200, 60000, 70000, "Human Services Committee");
-}
-
-function CCFADBKeywordSearch() {
-	performTest("CCFADB Search - Keyword (Foundry)", "http://www2.cambridgema.gov/cityClerk/SearchResults.cfm?searchType=keyword&newSearch=1&keyword=foundry&search_mode=phrase&date_lo=&date_hi=&type=cm_agenda&search3=Search", 200, 25000, 35000, "Foundry");
-}
-*/
-/*
-var options = {
-	hostname: "www.cambridgema.gov",
-	port: 80,
-	path: "/",
-	method: "GET"
-};
-
-var reqHomepage = http.get("http://www.cambridgema.gov/", (res) => {
-	const statusCode = res.statusCode;
-	const encoding = res.headers["Content-Type"];
-	var responseBody = "";
-
-	// Read the response body
-	res.on("data", (data) => {
-		responseBody += data;
-	});
-
-	res.on("end", () => {
-		// Check the status code, find out how we made out
-		if (statusCode === 200)
-			console.log(`Everything's cool on the homepage\nCode: ${statusCode}\tResponse length: ${responseBody.length}`);
-		else
-			console.log(`Things aren't cool, got a status code ${statusCode} response!`);
-	});
-}).on("error", (e) => {
-	console.log(`Got an error making request: ${e.message}`);
-});
-*/
-
-// Makes an HTTP request and tests the response
-function performTest(name, url, expStatus = 200, expLenLow = 0, expLenHigh = 0, expToken = "") {
-	var proto = http;
-	var start = Date.now();
-
-	if (url.substr(0,8) == "https://")
-		proto = https;
-
-	//console.log(`Performing test "${name}"\nURL: ${url}\nExpect Status: ${expStatus}\nExpect response length ${expLenLow} to ${expLenHigh} bytes\nExpect token: ${expToken}`);
-	var request = proto.get(url, (res) => {
-		const statusCode = res.statusCode;
-		const encoding = res.headers["Content-Type"];
-		var responseBody = "";
-		var responseTime = 0;
-
-		res.setEncoding("UTF-8");
-
-		// Read the full response body
-		res.on("data", (data) => {
-			responseBody += data;
-		});
-
-		// On the first data event, record the end time and calculate the response time
-		res.once("data", (data) => {
-			var end = Date.now();
-			responseTime = end - start;
-		});
-
-		// At the end of the request...
-		res.on("end", () => {
-			// Check if we received a 301 response - if so, re-execute this test at the new URL
-			if (statusCode === 301)
-			{
-				//console.log(`Got 301 response, location is ${res.headers['location']}`);
-				performTest(name, res.headers['location'], expStatus, expLenLow, expLenHigh, expToken);
+				// Mnaually fire each test to run immediately
+				test.ExecuteTest();
 			}
-			else
-			{
-				// Test booleans - true indicates the test will be performed
-				var tStatus = (expStatus !== 0);
-				var tLen = (expLenLow > 0 && expLenHigh > 0);
-				var tToken = (expToken != "");
-
-				// Test result booleans - results of the tests that are performed, default all results to true so a skipped test can still be examined
-				var rStatus = true;
-				var rLen = true;
-				var rToken = true;
-
-				// Contains a colored string for the result of the test overall
-				var testResult = "";
-
-				/*if (tStatus)
-					console.log("Testing for status code");
-				if (tLen)
-					console.log("Testing for response length");
-				if (tToken)
-					console.log("Testing for token");*/
-
-				// Test for status code
-				if (tStatus && statusCode !== expStatus)
-					rStatus = false;
-
-				// Test for content length
-				if (tLen && ((responseBody.length < expLenLow || responseBody.length > expLenHigh)))
-					rLen = false;
-
-				// Test for token
-				if (tToken && !responseBody.search(expToken))
-					rToken = false;
-
-				if (rStatus && rLen && rToken)
-				{
-					testResultConsole = "PASS".green;
-					testResultLog = "PASS";
-				}
-				else
-				{
-					testResultConsole = "FAIL".red;
-					testResultLog = "FAIL";
-				}
-
-				// Output
-				logResult(`${testResultConsole}\t${name}\t${responseTime}ms`, `${testResultLog}\t${name}\t${responseTime}ms`);
-
-				if (!rStatus)
-					logResult(`Failed on status - expected ${expStatus}, got ${statusCode}`);
-
-				if (!rLen)
-				{
-					logResult(`Failed on length - expected between ${expLenLow} and ${expLenHigh}, but response was ${responseBody.length}`);
-					/*
-						var outFile = name.replace(" ", "-") + ".html";
-						fs.writeFileSync(outFile, responseBody);
-					*/
-				}
-
-				if (!rToken)
-					logResult(`Failed on token search - could not find token ${expToken} in the response body.`);
-			}
-		});
-	}).on("error", (e) => {
-		logResult(`Got an error making request: ${e.message}`);
 	});
+
+function ProcessTestResponse(test, response) {
+	console.log(`Request for test ${test.name} completed in ${response.responseTime}ms, returned ${response.responseData.length} bytes of data.`);
 }
 
 function logResult(consoleData, fileData) {
