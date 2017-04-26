@@ -4,6 +4,8 @@ var colors = require("colors");
 var dateFormat = require("dateformat");
 var fs = require("fs");
 var now = require("performance-now");
+var async = require("async");
+var testFunctions = require("./tests.js");
 var Validator = require('jsonschema').Validator;
 var v = new Validator();
 var configSchema = require("./configSchema.json");
@@ -109,28 +111,33 @@ function WebResponse() {
 	this.responseTime = 0;
 }
 
-function Test(testFromConfig) {
+function Test(testFromConfig, idx) {
+	this.idx = idx;
 	this.name = testFromConfig.name;
 	this.friendlyName = testFromConfig.friendlyName;
 	this.url = testFromConfig.url;
-	this.pollingInterval = testFromConfig.pollingInterval;
+	this.pollingInterval = testFromConfig.pollingInterval * 1000;
 	this.successCondition = testFromConfig.successCondition;
 	this.ExecuteTest = () => {
 		console.log(`Executing test ${this.friendlyName} with url ${this.url}`);
 
-		RequestUrl(this, ProcessTestResponse);
+		var result = RequestUrl(this, ProcessTestResponse);
 	};
 }
 
 function SetConfiguration(config, callback) {
+	var idx = 0;
+
 	// Store the configuration in a global var for use elsewhere
 	configuration = config;
 
 	// Loop over the array of tests, adding them to the tests array
 	config.tests.forEach((value) => {
+		idx++;
+
 		console.log("Setting up test " + value.friendlyName);
 
-		tests.push(new Test(value));
+		tests.push(new Test(value, idx));
 	});
 
 	// Execute the callback function
@@ -152,14 +159,14 @@ function RequestUrl(test, callback) {
 
 	proto.get(test.url, (res) => {
 		// Store the response code
-		response.responseCode = res;
+		response.responseCode = res.statusCode;
 
 		// Retrieve data
 		res.setEncoding("utf-8");
 		res.on("data", (chunk) => { data += chunk });
 		res.on("end", () => {
 			response.responseData = data;
-			response.responseTime = now() - t0;
+			response.responseTime = (now() - t0).toFixed(0);
 
 			// Execute the callback
 			callback(test, response);
@@ -194,6 +201,32 @@ if (ValidateConfigurationData(configData))
 
 function ProcessTestResponse(test, response) {
 	console.log(`Request for test ${test.name} completed in ${response.responseTime}ms, returned ${response.responseData.length} bytes of data.`);
+
+	// Execute the specified tests on the response data
+	var responseTests = [];
+	var success = true;
+
+	var overallTestResult = true;
+
+	// Execute tests
+	test.successCondition.forEach((condition) => {
+		var testResult = true;
+
+		// Execute the test
+		if (condition.type == "responseCode")
+			testResult = testFunctions.responseCode(condition, response);
+		else if (condition.type == "responseSize")
+			testResult = testFunctions.responseSize(condition, response);
+
+		// Check the result; if it's false, set overallRestResult to false because a failure of any condition is a failure of the entire test
+		if (!testResult)
+			overallTestResult = false;
+	});
+
+if (overallTestResult)
+	console.log("Test " + test.friendlyName + " completed with result " + overallTestResult.toString().green);
+else
+	console.log("Test " + test.friendlyName + " completed with result " + overallTestResult.toString().red);
 }
 
 function logResult(consoleData, fileData) {

@@ -1,6 +1,6 @@
 {
   "name": "Supreme-Pancake",
-  "version": "0.1",
+  "version": "1.0.0-alpha",
   "description": "NodeJS-based modular website monitoring application",
   "main": "app.js",
   "scripts": {
