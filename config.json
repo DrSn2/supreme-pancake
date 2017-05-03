@@ -16,6 +16,14 @@
 				"type": "responseSize",
 				"minimum": 98000,
 				"maximum": 108000
+			},
+			{
+				"type": "contentMatch",
+				"matches": [
+					"What's Happening",
+					"Coming Up",
+					"Community Needs Assessment"
+				]
 			}
 		]
 	},
@@ -107,6 +115,7 @@
 			{
 				"type": "contentMatch",
 				"matches": [
+					"foundry"
 				]
 			}
 		]
