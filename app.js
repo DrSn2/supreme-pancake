@@ -21,7 +21,7 @@ function LoadConfigurationData(configFilename) {
 	if (!fs.existsSync(configFilename))
 	{
 		// Configuration file does not exist
-		console.log("FATAL".red + ": Configuration file config.js does not exist, exiting.");
+		console.log("FATAL".red + ": Configuration file " + configFilename + " does not exist, exiting.");
 		process.exit(1);
 	}
 	else {
