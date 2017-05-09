@@ -2,6 +2,14 @@
 	"version": 1,
 	"warnResponseTime": 600,
 	"slowResponseTime": 1000,
+	"logging": {
+		"enabled": true,
+		"consoleLogging": true,
+		"consoleLoggingLevel": "info",
+		"fileLogging": true,
+		"fileLoggingLevel": "silly",
+		"fileLoggingFile": "logfile.txt"
+	},
 	"tests" : [{
 		"name": "homepageTest",
 		"friendlyName": "City Homepage Test",

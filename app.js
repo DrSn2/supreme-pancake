@@ -149,6 +149,70 @@ function SetConfiguration(config, callback) {
 	// Store the configuration in a global var for use elsewhere
 	configuration = config;
 
+	// Check to see if logging should be shut off
+	if (configuration.hasOwnProperty("logging") && configuration.logging.hasOwnProperty("enabled") && !configuration.logging.enabled)
+	{
+		logger.info("Disabling logging as per configuration");
+
+		// Remove the console logger
+		logger.remove(winston.transports.Console);
+	}
+	else {
+		// Check if we should be logging to console
+		if (configuration.hasOwnProperty("logging") && configuration.logging.hasOwnProperty("consoleLogging") && configuration.logging.consoleLogging)
+		{
+			// Override the default console level if specified
+			if (configuration.hasOwnProperty("logging") && configuration.logging.hasOwnProperty("consoleLoggingLevel"))
+			{
+				logger.info(`Setting console logging level to ${configuration.logging.consoleLoggingLevel} as per configuration`);
+
+				// Just remove the console logger and readd it, seems simplest
+				logger.remove(winston.transports.Console)
+				.add(winston.transports.Console, {
+					level: configuration.logging.consoleLoggingLevel,
+					timestamp: function() {
+							return dateFormat(Date.now(), "HH:MM:ss");
+						},
+						formatter: function(options) {
+							// Return string will be passed to logger.
+							return options.timestamp() +' '+ options.level.toUpperCase() +' '+ (options.message ? options.message : '') +
+							(options.meta && Object.keys(options.meta).length ? '\n\t'+ JSON.stringify(options.meta) : '' );
+						}
+					}
+				);
+			}
+		}
+
+		// Check if we should enable file logging
+		if (configuration.hasOwnProperty("logging") && configuration.logging.hasOwnProperty("fileLogging") && configuration.logging.fileLogging)
+		{
+			// Check for a logging level override; default otherwise
+			var fileLoggingLevel = (configuration.hasOwnProperty("logging") && configuration.logging.hasOwnProperty("fileLoggingLevel")) ? configuration.logging.fileLoggingLevel : "info";
+
+			// Check for a log filename override; default otherwise
+			var fileLoggingFile = (configuration.hasOwnProperty("logging") && configuration.logging.hasOwnProperty("fileLoggingFile")) ? configuration.logging.fileLoggingFile : "log.txt";
+
+			logger.info(`Enabling file logging at level ${fileLoggingLevel} to file ${fileLoggingFile}`);
+
+			// Add a file logger
+			logger.add(winston.transports.File, {
+				level: fileLoggingLevel,
+				filename: fileLoggingFile,
+				json: false,
+				timestamp: function() {
+					return dateFormat(Date.now(), "HH:MM:ss");
+				},
+				formatter: function(options) {
+					// Return string will be passed to logger.
+					return options.timestamp() +' '+ options.level.toUpperCase() +' '+ (options.message ? options.message : '') +
+					(options.meta && Object.keys(options.meta).length ? '\n\t'+ JSON.stringify(options.meta) : '' );
+				}
+			});
+		}
+
+		logger.info(`Application finished initializing at ${dateFormat(Date.now(), "d mmm yyyy HH:MM:ss")}, beginning normal operation.`);
+	}
+
 	// Loop over the array of tests, adding them to the tests array
 	config.tests.forEach((value) => {
 		idx++;
@@ -203,7 +267,7 @@ function RequestUrl(test, callback) {
 	});
 }
 
-// Initialize the logger
+// Initialize the logger - logger will always begin with console logging, if the app is configured not to log it will be shut off later
 logger = new winston.Logger({
 	level: "debug",
 	transports: [
