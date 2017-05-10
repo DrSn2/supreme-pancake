@@ -2,6 +2,14 @@
 	"version": 1,
 	"warnResponseTime": 600,
 	"slowResponseTime": 1000,
+	"logging": {
+		"enabled": true,
+		"consoleLogging": true,
+		"consoleLoggingLevel": "info",
+		"fileLogging": true,
+		"fileLoggingLevel": "silly",
+		"fileLoggingFile": "logfile.txt"
+	},
 	"tests" : [{
 		"name": "homepageTest",
 		"friendlyName": "City Homepage Test",
@@ -16,6 +24,14 @@
 				"type": "responseSize",
 				"minimum": 98000,
 				"maximum": 108000
+			},
+			{
+				"type": "contentMatch",
+				"matches": [
+					"What's Happening",
+					"Coming Up",
+					"Community Needs Assessment"
+				]
 			}
 		]
 	},
@@ -107,6 +123,7 @@
 			{
 				"type": "contentMatch",
 				"matches": [
+					"foundry"
 				]
 			}
 		]
