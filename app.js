@@ -343,3 +343,14 @@ function ProcessTestResponse(test, response) {
 	else
 		logger.warn(`Test ${test.friendlyName} completed with overall result of ${overallTestResult}`);
 }
+
+function logResult(consoleData, fileData) {
+	if (fileData === undefined)
+		fileData = consoleData;
+
+	// Log to console
+	console.log(`[${dateFormat(new Date(), "HH:MM:ss")}]: ${consoleData}`);
+
+	// Log to file
+	fs.appendFileSync("./log.txt", `[${dateFormat(new Date(), "HH:MM:ss")}]: ${fileData}\n`);
+}
