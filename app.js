@@ -127,6 +127,8 @@ function WebResponse() {
 
 // Object prototype for holding test configuration
 function Test(testFromConfig, idx) {
+	logger.debug(`Configuring test ${testFromConfig.friendlyName}...`);
+
 	this.idx = idx;
 	this.name = testFromConfig.name;
 	this.friendlyName = testFromConfig.friendlyName;
@@ -139,6 +141,22 @@ function Test(testFromConfig, idx) {
 
 		var result = RequestUrl(this, ProcessTestResponse);
 	};
+
+	logger.silly(`Test index: ${this.idx}`);
+	logger.silly(`Name: ${this.name}`);
+	logger.silly(`Friendly Name: ${this.friendlyName}`);
+	logger.silly(`URL: ${this.url}`);
+	logger.silly(`Polling Interval: ${this.pollingInterval}`);
+	logger.silly(`Success conditions: ${this.successCondition.length}`);
+
+	var scIdx = 0;
+	this.successCondition.forEach((value) => {
+		scIdx++;
+
+		logger.silly(`  Condition ${scIdx}: ${value.type}`);
+	});
+
+	logger.info(`Test #${this.idx} loaded: ${this.friendlyName}`);
 }
 
 function SetConfiguration(config, callback) {
@@ -216,8 +234,6 @@ function SetConfiguration(config, callback) {
 	// Loop over the array of tests, adding them to the tests array
 	config.tests.forEach((value) => {
 		idx++;
-
-		logger.debug("Configuring test " + value.friendlyName);
 
 		tests.push(new Test(value, idx));
 	});
